@@ -623,6 +623,15 @@ void AP_AHRS::update_EKF2(void)
 #if HAL_NAVEKF3_AVAILABLE
 void AP_AHRS::update_EKF3(void)
 {
+    if (_ekf3_reset_requested) {
+        _ekf3_reset_requested = false;
+        if (_ekf3_started) {
+            _ekf3_reset_have_origin = EKF3.getOriginLLH(_ekf3_reset_origin);
+            EKF3.resetCoreStates();
+            _ekf3_started = false;
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "EKF3 reset");
+        }
+    }
     if (!_ekf3_started) {
         // wait 1 second for DCM to output a valid tilt error estimate
         if (start_time_ms == 0) {
@@ -641,6 +650,15 @@ void AP_AHRS::update_EKF3(void)
 #endif
         if (AP_HAL::millis() - start_time_ms > startup_delay_ms) {
             _ekf3_started = EKF3.InitialiseFilter();
+        }
+        // a reset clears the origin. When GPS is the position source the
+        // EKF sets a new origin from GPS, otherwise the previous one is kept
+        if (_ekf3_started && _ekf3_reset_have_origin) {
+            _ekf3_reset_have_origin = false;
+            if (!EKF3.configuredToUseGPSForPosXY() &&
+                !EKF3.setOriginLLH(_ekf3_reset_origin)) {
+                GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "EKF3 reset: origin not restored");
+            }
         }
     }
     if (_ekf3_started) {
@@ -728,6 +746,19 @@ void AP_AHRS::reset()
     }
 #endif
 }
+
+#if HAL_NAVEKF3_AVAILABLE
+bool AP_AHRS::reset_EKF3()
+{
+    WITH_SEMAPHORE(_rsem);
+
+    if (!_ekf3_started) {
+        return false;
+    }
+    _ekf3_reset_requested = true;
+    return true;
+}
+#endif
 
 // dead-reckoning support
 bool AP_AHRS::_get_location(Location &loc) const
