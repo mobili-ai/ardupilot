@@ -183,6 +183,14 @@ private:
     // system time in milliseconds of last recorded yaw reset from ekf
     uint32_t ekfYawReset_ms = 0;
 
+    // state of an EKF3 reset requested by the GCS
+    struct {
+        bool active;
+        uint32_t start_ms;
+        bool ekf3_was_active;
+        uint32_t last_yaw_reset_ms;
+    } ekf3_reset;
+
     // GCS selection
     GCS_Sub _gcs; // avoid using this; use gcs()
     GCS_Sub &gcs() { return _gcs; }
@@ -401,6 +409,9 @@ private:
     void get_pilot_desired_lean_angles(float roll_in, float pitch_in, float &roll_out, float &pitch_out, float angle_max);
     float get_pilot_desired_yaw_rate(int16_t stick_angle) const;
     void check_ekf_yaw_reset();
+    bool reset_ekf3();
+    void update_ekf3_reset();
+    void ekf3_reset_resync_controllers();
     float get_roi_yaw();
     float get_look_ahead_yaw();
     float get_pilot_desired_climb_rate(float throttle_control);

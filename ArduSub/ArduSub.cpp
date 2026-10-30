@@ -58,6 +58,8 @@ const AP_Scheduler::Task Sub::scheduler_tasks[] = {
     FAST_TASK(read_inertia),
     // check if ekf has reset target heading
     FAST_TASK(check_ekf_yaw_reset),
+    // keep controllers in step with EKF3 while it re-aligns after a reset
+    FAST_TASK(update_ekf3_reset),
     // run the attitude controllers
     FAST_TASK(update_flight_mode),
     // update home from EKF if necessary

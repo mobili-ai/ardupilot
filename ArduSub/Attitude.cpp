@@ -51,6 +51,75 @@ void Sub::check_ekf_yaw_reset()
     }
 }
 
+// re-initialise EKF3 in any mode, armed or disarmed
+bool Sub::reset_ekf3()
+{
+    if (!ahrs.reset_EKF3()) {
+        gcs().send_text(MAV_SEVERITY_WARNING, "EKF3 reset failed: EKF3 not running");
+        return false;
+    }
+
+    ekf3_reset.active = true;
+    ekf3_reset.start_ms = AP_HAL::millis();
+    ekf3_reset.ekf3_was_active = ahrs.EKF3_active();
+    ekf3_reset.last_yaw_reset_ms = ekfYawReset_ms;
+
+    return true;
+}
+
+// while EKF3 re-aligns after a reset, keep the controller targets in step
+// with the estimate so the vehicle does not chase a stale attitude, heading
+// or position
+void Sub::update_ekf3_reset()
+{
+    if (!ekf3_reset.active) {
+        return;
+    }
+
+    bool resync = false;
+
+    const bool ekf3_active = ahrs.EKF3_active();
+    if (ekf3_active != ekf3_reset.ekf3_was_active) {
+        ekf3_reset.ekf3_was_active = ekf3_active;
+        resync = true;
+    }
+
+    if (ekfYawReset_ms != ekf3_reset.last_yaw_reset_ms) {
+        ekf3_reset.last_yaw_reset_ms = ekfYawReset_ms;
+        resync = true;
+    }
+
+    if (resync) {
+        ekf3_reset_resync_controllers();
+    }
+
+    // EKF3 normally restarts within a second and completes yaw alignment a
+    // few seconds later
+    if (AP_HAL::millis() - ekf3_reset.start_ms > 15000) {
+        ekf3_reset.active = false;
+    }
+}
+
+void Sub::ekf3_reset_resync_controllers()
+{
+    attitude_control.inertial_frame_reset();
+    last_pilot_heading = ahrs.yaw_sensor;
+
+    // AUTO, GUIDED and CIRCLE targets are relative to the restored origin, and
+    // SURFTRAK holds a rangefinder target, so their position targets are kept
+    switch (control_mode) {
+    case Mode::Number::ALT_HOLD:
+        pos_control.init_z_controller();
+        break;
+    case Mode::Number::POSHOLD:
+        pos_control.init_xy_controller_stopping_point();
+        pos_control.init_z_controller();
+        break;
+    default:
+        break;
+    }
+}
+
 /*************************************************************
  * yaw controllers
  *************************************************************/
