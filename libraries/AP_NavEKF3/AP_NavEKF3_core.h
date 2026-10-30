@@ -138,6 +138,13 @@ public:
     // This method can only be used when the vehicle is static
     bool InitialiseFilterBootstrap(void);
 
+    // mark the states as uninitialised so that the next call to
+    // InitialiseFilterBootstrap() re-initialises them from sensor data
+    void resetStates(void) {
+        statesInitialised = false;
+        last_filter_ok_ms = 0;
+    }
+
     // Update Filter States - this should be called whenever new IMU data is available
     // The predict flag is set true when a new prediction cycle can be started
     void UpdateFilter(bool predict);

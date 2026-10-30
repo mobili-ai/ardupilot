@@ -866,6 +866,16 @@ bool NavEKF3::InitialiseFilter(void)
     return ret;
 }
 
+void NavEKF3::resetCoreStates(void)
+{
+    if (core == nullptr) {
+        return;
+    }
+    for (uint8_t i=0; i<num_cores; i++) {
+        core[i].resetStates();
+    }
+}
+
 /*
   return true if a new core index has a better score than the current
   core

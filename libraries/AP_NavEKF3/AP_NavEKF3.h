@@ -48,6 +48,11 @@ public:
     // Initialise the filter
     bool InitialiseFilter(void);
 
+    // mark the states of all cores as uninitialised. The filter must then be
+    // restarted with InitialiseFilter(), which re-aligns the cores from
+    // current sensor data
+    void resetCoreStates(void);
+
     // Update Filter States - this should be called whenever new IMU data is available
     void UpdateFilter(void);
 
