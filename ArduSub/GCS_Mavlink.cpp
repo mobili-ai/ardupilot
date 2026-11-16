@@ -512,9 +512,25 @@ MAV_RESULT GCS_MAVLINK_Sub::handle_command_int_packet(const mavlink_command_int_
     case MAV_CMD_NAV_LAND:
         return handle_MAV_CMD_NAV_LAND(packet);
 
+    case MAV_CMD_USER_1:
+        return handle_ekf3_reset(packet);
+
     }
 
     return GCS_MAVLINK::handle_command_int_packet(packet, msg);
+}
+
+// MAV_CMD_USER_1 is used as the EKF3 reset command. param1 must be 1 so that
+// a stray MAV_CMD_USER_1 from another tool cannot reset the EKF
+MAV_RESULT GCS_MAVLINK_Sub::handle_ekf3_reset(const mavlink_command_int_t &packet)
+{
+    if (!is_equal(packet.param1, 1.0f)) {
+        return MAV_RESULT_DENIED;
+    }
+    if (!sub.reset_ekf3()) {
+        return MAV_RESULT_FAILED;
+    }
+    return MAV_RESULT_ACCEPTED;
 }
 
 MAV_RESULT GCS_MAVLINK_Sub::handle_MAV_CMD_NAV_LOITER_UNLIM(const mavlink_command_int_t &packet)

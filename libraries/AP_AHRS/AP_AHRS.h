@@ -89,6 +89,16 @@ public:
     void            update(bool skip_ins_update=false);
     void            reset();
 
+#if HAL_NAVEKF3_AVAILABLE
+    // request that EKF3 re-initialises its states on the next update. Safe
+    // to use while armed; the fallback estimator is used until EKF3 has
+    // re-aligned. The EKF origin is kept unless GPS is the position
+    // source. Returns false if EKF3 is not currently running
+    bool reset_EKF3();
+
+    bool EKF3_active() const { return active_EKF_type() == EKFType::THREE; }
+#endif
+
     // get current location estimate
     bool get_location(Location &loc) const;
 
@@ -757,6 +767,9 @@ private:
 #endif
 #if HAL_NAVEKF3_AVAILABLE
     bool _ekf3_started;
+    bool _ekf3_reset_requested;
+    bool _ekf3_reset_have_origin;
+    Location _ekf3_reset_origin;
     void update_EKF3(void);
 #endif
 
